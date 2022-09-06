@@ -9,3 +9,6 @@ Using steamcmd and the scripts in this repo will scan your NAS steamapps and upd
 
 # Status
 Currently: PoC 
+
+# Next Steps
+- one script for install, setup and run the full function
