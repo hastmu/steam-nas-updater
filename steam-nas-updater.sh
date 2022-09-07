@@ -11,10 +11,12 @@ CFG["bin-root"]=~/.local/steam-nas-updater
 [ ! -x "${CFG["bin-root"]}" ] && mkdir -p ${CFG[bin-root]}
 
 declare -A BINS
-declare -a bin=( "steamcmd" "acf_to_json" "ls" )
+declare -A bin=( ["curlx"]="Please install via distribution" ["tar"]="Please install via distribution" ["jq"]="Please install via distribution" ["git"]="Please install via distribution" ["steamcmd"]="-" ["acf_to_json"]="-" )
+declare -A
 
 function install_steamcmd() {
    echo "install steamcmd"
+   #curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
 }
 
 function install_acf_to_json() {
@@ -28,7 +30,7 @@ function install() {
    # check if we are good to go...
    local item=""
    local ret=0
-   for item in ${bin[@]}
+   for item in ${!bin[@]}
    do
       BINS[${item}]="$(which ${item})"
       [ -z "${BINS[${item}]}" ] && ret=1
@@ -38,6 +40,19 @@ function install() {
    if [ $ret -ne 0 ]
    then
       echo "try install..."
+      for item in ${!bin[@]}
+      do
+	 if [ -z "${BINS[${item}]}" ]
+	 then
+	    echo "- not found: ${item}"
+	    if [ "x$(LC_ALL=C type -t install_${item})" = "xfunction" ]
+	    then
+	       install_${item}
+	    else
+	       echo "${bin[${item}]}"
+	    fi
+	 fi
+      done
    fi
    
    # feedback final status
