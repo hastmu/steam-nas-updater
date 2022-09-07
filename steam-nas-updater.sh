@@ -2,8 +2,24 @@
 
 echo "Status: Work in Progress - no implemented function"
 
+# defaults
+declare -A CFG
+CFG["cfg-root"]=~/.config/steam-nas-updater
+CFG["bin-root"]=~/.local/steam-nas-updater
+
+[ ! -x "${CFG["cfg-root"]}" ] && mkdir -p ${CFG[cfg-root]}
+[ ! -x "${CFG["bin-root"]}" ] && mkdir -p ${CFG[bin-root]}
+
 declare -A BINS
 declare -a bin=( "steamcmd" "acf_to_json" "ls" )
+
+function install_steamcmd() {
+   echo "install steamcmd"
+}
+
+function install_acf_to_json() {
+   echo "install acf_to_json"
+}
 
 function install() {
    # dependencies: steamcmd, acf_to_json
