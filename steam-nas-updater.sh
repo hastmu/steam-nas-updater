@@ -7,16 +7,21 @@ declare -A CFG
 CFG["cfg-root"]=~/.config/steam-nas-updater
 CFG["bin-root"]=~/.local/steam-nas-updater
 
+export PATH=${PATH}:${CFG["bin-root"]}/bin
+
 [ ! -x "${CFG["cfg-root"]}" ] && mkdir -p ${CFG[cfg-root]}
-[ ! -x "${CFG["bin-root"]}" ] && mkdir -p ${CFG[bin-root]}
+[ ! -x "${CFG["bin-root"]}/bin" ] && mkdir -p ${CFG[bin-root]}/bin
 
 declare -A BINS
-declare -A bin=( ["curlx"]="Please install via distribution" ["tar"]="Please install via distribution" ["jq"]="Please install via distribution" ["git"]="Please install via distribution" ["steamcmd"]="-" ["acf_to_json"]="-" )
-declare -A
+declare -A bin=( ["curlx"]="Please install via distribution" ["tar"]="Please install via distribution" ["jq"]="Please install via distribution" ["git"]="Please install via distribution" ["steamcmd.sh"]="-" ["acf_to_json"]="-" )
 
-function install_steamcmd() {
+
+function install_steamcmd.sh() {
    echo "install steamcmd"
-   #curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
+   cd ${CFG["bin-root"]}/bin
+   curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
+   cd
+   steamcmd.sh +quit
 }
 
 function install_acf_to_json() {
