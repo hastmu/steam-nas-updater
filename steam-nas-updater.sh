@@ -97,7 +97,11 @@ update-lib) {
    fi
    cd 
 
-for item in $(find Steam/steamapps/. -maxdepth 1 -type f -name "*.acf" -printf "%f\n")
+   # filter
+   [ -z "$2" ] && FILTER=".*" || FILTER="$2"
+   echo "FILTER: ${FILTER}"
+
+for item in $(find Steam/steamapps/. -maxdepth 1 -type f -name "*.acf" -printf "%f\n" | grep "${FILTER}" )
 do
    #echo "item: ${item}"
    #acf_to_json Steam/steamapps/${item} | jq '.AppState'
