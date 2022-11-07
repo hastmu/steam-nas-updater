@@ -5,16 +5,67 @@ echo "Status: Work in Progress - no implemented function"
 # defaults
 declare -A CFG
 CFG["cfg-root"]=~/.config/steam-nas-updater
+CFG["cache-root"]=~/.cache/steam-nas-updater
 CFG["bin-root"]=~/.local/steam-nas-updater
+
+# ( echo "{" ; cat ~/Steam/steamapps/appmanifest_227300.acf ; echo "}" ) | tr "\n" "%" | sed 's/"%\s*{/": {/g' | tr "%" "\n" | sed 's/"\(.*\)"\s*"\(.*\)"/"\1": "\2"/g' | tr "\n" "%" | sed 's/"%\s*"/",% "/g' | sed 's/}%\s*"/},% "/g' | tr "%"  "\n" | jq
 
 export PATH=${PATH}:${CFG["bin-root"]}/bin
 
-[ ! -x "${CFG["cfg-root"]}" ] && mkdir -p ${CFG[cfg-root]}
-[ ! -x "${CFG["bin-root"]}/bin" ] && mkdir -p ${CFG[bin-root]}/bin
+[ ! -x "${CFG["cfg-root"]}" ] && mkdir -p "${CFG["cfg-root"]}"
+[ ! -x "${CFG["cache-root"]}" ] && mkdir -p "${CFG["cache-root"]}"
+[ ! -x "${CFG["bin-root"]}/bin" ] && mkdir -p "${CFG["bin-root"]}/bin"
 
 declare -A BINS
 declare -A bin=( ["curlx"]="Please install via distribution" ["tar"]="Please install via distribution" ["jq"]="Please install via distribution" ["git"]="Please install via distribution" ["steamcmd.sh"]="-" ["acf_to_json"]="-" )
 
+function file_age() {
+	if [ ! -e "$1" ]
+	then
+	   return 1
+	else
+		local age=$(( $(date +%s) - $(stat -c %Y "$1") ))
+		if [ -z "$2" ]
+		then
+		  echo "${age}"
+		else
+		  if [ ${age} -gt $2 ]
+		  then
+			 return 1
+		  else
+			 return 0
+		  fi
+		fi
+	fi
+}
+
+function steamcmd_fetch_updateinfo() {
+	
+	if file_age "${CFG["cache-root"]}/$1.acf" 600
+	then
+		cat "${CFG["cache-root"]}/$1.acf.asc" 
+	else
+		steamcmd.sh +login anonymous +app_info_update 1 +app_info_print $1 +quit \
+		| awk 'BEGIN { a=0 } /AppID/ { a=1 ; next } { if( a == 1 ) print $0 }' > "${CFG["cache-root"]}/$1.acf"
+		#file "${CFG["cache-root"]}/$1.acf" >&2
+		iconv -c -f UTF-8 -t ASCII -o "${CFG["cache-root"]}/$1.acf.asc" "${CFG["cache-root"]}/$1.acf" 
+		cat "${CFG["cache-root"]}/$1.acf.asc" 
+	fi
+	
+}
+
+function acf2json() {
+   ( echo "{" ; cat $1 ; echo "}" ) \
+   | tr "%" "@" \
+   | tr "\n" "%" \
+   | sed 's/"%\s*{/": {/g' \
+   | tr "%" "\n" \
+   | sed 's/"\(.*\)"\s*"\(.*\)"/"\1": "\2"/g' \
+   | tr "\n" "%" \
+   | sed 's/"%\s*"/",% "/g' \
+   | sed 's/}%\s*"/},% "/g' \
+   | tr "%"  "\n"
+}
 
 function install_steamcmd.sh() {
    echo "install steamcmd"
@@ -105,10 +156,11 @@ for item in $(find Steam/steamapps/. -maxdepth 1 -type f -name "*.acf" -printf "
 do
    #echo "item: ${item}"
    #acf_to_json Steam/steamapps/${item} | jq '.AppState'
-   appid=$(acf_to_json Steam/steamapps/${item} 2>>/dev/null | jq -r '.AppState.appid') 
-   name=$(acf_to_json Steam/steamapps/${item} 2>>/dev/null | jq -r '.AppState.name') 
-   buildid=$(acf_to_json Steam/steamapps/${item} 2>>/dev/null | jq -r '.AppState.buildid') 
-   f_buildid=$(steamcmd.sh +login anonymous +app_info_update 1 +app_info_print ${appid} +quit | acf_to_json | jq -r ".\"${appid}\".depots.branches.public.buildid")
+   appid=$(acf2json Steam/steamapps/${item} 2>>/dev/null | jq -r '.AppState.appid') 
+   name=$(acf2json Steam/steamapps/${item} 2>>/dev/null | jq -r '.AppState.name') 
+   buildid=$(acf2json Steam/steamapps/${item} 2>>/dev/null | jq -r '.AppState.buildid') 
+   f_buildid=$(steamcmd_fetch_updateinfo ${appid} \
+               | acf2json | jq -r ".\"${appid}\".depots.branches.public.buildid")
    printf "%40s [%10s] %s -> %s\n" "${name}" "${appid}" "${buildid}" "${f_buildid}"
    [ -e ${CFG["cfg-root"]}/.steam_${appid}_${f_buildid} ] && continue
    [ "x${buildid}" = "x${f_buildid}" ] && continue
